@@ -7,95 +7,68 @@ const createRequestLogger = require('./middleware/requestLogger');
 const createValidate = require('./middleware/validate');
 const createHealthRouter = require('./routes/health');
 const { createUsersRouter } = require('./routes/users');
-const { NotFoundError, normalizeError } = require('./utils/errors');
+const { NotFoundError, normalizeError } = require('@observatory/core');
 
-// ──────────────────────────────────────────────────────────────
-// NEW: Shared Prometheus metrics from the observatory
-// ──────────────────────────────────────────────────────────────
+// Shared observatory packages
+const logger = require('@observatory/logger');
 const { metricsMiddleware, metricsEndpoint } = require('@observatory/metrics');
+const { createHealthRouter: createObservatoryHealthRouter } = require('@observatory/healthcheck');
 
 function createApp(options = {}) {
   const app = express();
+
   const authenticate = options.authenticate || createAuthenticate(options.auth);
   const validate = options.validate || createValidate;
-  const rateLimitMax = Number(
-    options.rateLimitMax || process.env.RATE_LIMIT_MAX || 20
-  );
-  const rateLimitWindowMs = Number(
-    options.rateLimitWindowMs || process.env.RATE_LIMIT_WINDOW_MS || 10000
-  );
 
   app.disable('x-powered-by');
 
+  // Shared middleware
   app.use(createCors({ origin: options.corsOrigin }));
-  app.use(createRequestLogger({ logger: options.logger }));
-
-  // NEW: Metrics middleware (placed early so it captures ALL requests)
-  app.use(metricsMiddleware);
-
+  app.use(createRequestLogger({ logger }));
+  app.use(metricsMiddleware);                    // ← shared metrics
   app.use(
     createRateLimit({
-      max: rateLimitMax,
-      windowMs: rateLimitWindowMs,
+      max: options.rateLimitMax,
+      windowMs: options.rateLimitWindowMs,
       store: options.rateLimitStore,
       keyGenerator: options.rateLimitKeyGenerator
     })
   );
 
-  app.use(
-    '/api/health',
-    createHealthRouter({
-      getDatabaseStatus: options.getDatabaseStatus
-    })
-  );
+  // Health checks (shared + custom)
+  app.use('/api/health', createHealthRouter({
+    getDatabaseStatus: options.getDatabaseStatus
+  }));
 
-  app.use(
-    '/api/users',
-    createUsersRouter({
-      userStore: options.userStore,
-      authenticate,
-      validate
-    })
-  );
+  // Users router
+  app.use('/api/users', createUsersRouter({
+    userStore: options.userStore,
+    authenticate,
+    validate
+  }));
 
-  // NEW: Prometheus metrics endpoint (placed before 404 handler)
+  // Prometheus metrics endpoint
   app.get('/metrics', metricsEndpoint);
 
+  // 404 handler
   app.use((req, res, next) => {
     next(new NotFoundError(`Route ${req.method} ${req.originalUrl} not found`));
   });
 
+  // Error handler
   app.use((error, req, res, next) => {
     const normalizedError = normalizeError(error);
     const statusCode = normalizedError.statusCode || 500;
 
-    if (res.headersSent) {
-      return next(normalizedError);
+    if (statusCode >= 500 && req.log) {
+      req.log.error({ err: normalizedError }, 'request failed');
     }
 
-    if (
-      statusCode >= 500 &&
-      req.log &&
-      typeof req.log.error === 'function'
-    ) {
-      req.log.error(
-        {
-          err: {
-            name: normalizedError.name,
-            message: normalizedError.message,
-            statusCode
-          }
-        },
-        'request failed'
-      );
-    }
+    if (res.headersSent) return next(normalizedError);
 
     return res.status(statusCode).json({
       error: normalizedError.code || normalizedError.name || 'InternalError',
-      message:
-        normalizedError.expose === false
-          ? 'Internal server error'
-          : normalizedError.message,
+      message: normalizedError.expose === false ? 'Internal server error' : normalizedError.message,
       statusCode,
       requestId: req.requestId || null,
       ...(normalizedError.details ? { details: normalizedError.details } : {})
@@ -105,6 +78,4 @@ function createApp(options = {}) {
   return app;
 }
 
-module.exports = {
-  createApp
-};
+module.exports = { createApp };

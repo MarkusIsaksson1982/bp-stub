@@ -14,6 +14,9 @@
     "lint": "eslint src tests"
   },
   "dependencies": {
+    "@observatory/logger": "file:../../packages/logger",
+    "@observatory/healthcheck": "file:../../packages/healthcheck",
+    "@observatory/core": "file:../../packages/core",
     "@observatory/metrics": "file:../../packages/metrics",
     "cors": "^2.8.5",
     "express": "^4.21.2",

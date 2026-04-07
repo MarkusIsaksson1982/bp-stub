@@ -1,0 +1,7 @@
+{
+  "name": "@observatory/core",
+  "version": "0.1.0",
+  "description": "Core utilities and error classes for the Full Stack Observatory",
+  "main": "index.js",
+  "license": "MIT"
+}
