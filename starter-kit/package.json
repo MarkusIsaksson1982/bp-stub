@@ -1,0 +1,9 @@
+{
+  "name": "fullstack-observatory-starter",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd ../fullstack-api-server && npm run dev",
+    "compose": "docker compose -f ../docker-compose.fullstack.yml up -d"
+  }
+}
