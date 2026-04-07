@@ -1,12 +1,12 @@
 # Full Stack Observatory
 
-**A complete 12-layer production reference architecture — now a Turborepo monorepo.**
+**A complete 12-layer production reference architecture — built as a Turborepo monorepo.**
 
-One command gives you a fully monitored, secured, containerized full-stack system with real Prometheus + Grafana observability.
+One command gives you a fully monitored, secured, containerized full-stack system with real Prometheus + Grafana observability and alerting.
 
 **Live interactive explorer** → [markusisaksson1982.github.io](https://markusisaksson1982.github.io/)
 
-## 🚀 One-Command Full Stack Demo
+## 🚀 One-Command Demo
 
 ```bash
 git clone https://github.com/MarkusIsaksson1982/fullstack-observatory.git
@@ -17,44 +17,31 @@ npm run compose
 ```
 
 After ~30 seconds open:
-- http://localhost → API (redirects to health check)
-- http://localhost:3001 → Grafana (admin / admin123)
-- http://localhost:9090 → Prometheus
+- **http://localhost** → API (redirects to health)
+- **http://localhost:3001** → Grafana (admin / admin123)
+- **http://localhost:9090** → Prometheus + alerts
 
-## See it running
+## What You Get
 
-
-
-
-
-
-
-
-
-## What’s included
-
-- **Turborepo monorepo** with shared packages (`@observatory/metrics`)
-- Layer 2: Express + Zod API with live Prometheus metrics
-- Layer 3: PostgreSQL with health checks
-- Layer 4: Nginx reverse proxy + security headers
+- Turborepo monorepo with shared packages (`@observatory/*`)
+- Layer 2: Express + Zod API with live metrics
+- Layer 3: PostgreSQL + exporter
+- Layer 4: Nginx + hardened configs
 - Layer 8: Security hardening (Helmet, CSP, rate limiting, Zod)
-- Layer 9: Proper multi-stage Dockerfiles
-- Layer 11: Full Prometheus + Grafana observability
+- Layer 9: Multi-stage Dockerfiles
+- Layer 11: Prometheus + Grafana + Alertmanager
 
-## Tech Stack
+## Screenshots
 
-- Node.js 22 LTS + Express + Zod
-- PostgreSQL
-- Docker + Turborepo
-- Prometheus + Grafana
-- Nginx + hardened configs
+![Terminal](screenshots/01-terminal-compose.png)
+![Grafana](screenshots/02-grafana-dashboard.png)
+![Prometheus](screenshots/03-prometheus-targets.png)
 
 ## Links
 
 - [Interactive 12-Layer Explorer](https://markusisaksson1982.github.io/)
 - [Architecture](ARCHITECTURE.md)
 - [End-to-End Demo](COMPOSE.md)
-- [Roadmap](ROADMAP.md)
 
 ---
 
