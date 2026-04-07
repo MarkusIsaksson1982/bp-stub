@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -11,27 +9,27 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Optional: mount init scripts from database repo if you add them
-      # - ../fullstack-database/init:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 8
+      start_period: 20s
+    networks:
+      - fullstack-network
 
   api:
     build:
-      context: ../fullstack-api-server
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: fullstack-observatory/api.Dockerfile
     container_name: fullstack-api
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV}
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      # Add any extra vars your .env.example in api-server uses
       AUTH_BEARER_TOKEN: ${AUTH_BEARER_TOKEN}
       JWT_SECRET: ${JWT_SECRET}
       LOG_LEVEL: info
@@ -44,16 +42,16 @@ services:
       - fullstack-network
 
   nginx:
-    build:
-      context: ../fullstack-server-configs
-      # If it doesn't have a Dockerfile yet, you can use the containerized one or add one
-      dockerfile: Dockerfile
+    image: nginx:alpine
     container_name: fullstack-nginx
     restart: unless-stopped
     ports:
       - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro   # ← single clean config
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks:
       - fullstack-network
 

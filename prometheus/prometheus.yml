@@ -1,9 +1,5 @@
 global:
   scrape_interval: 15s
-  evaluation_interval: 15s
-
-rule_files:
-  - /etc/prometheus/alert.rules.yml   # we'll add this in the next batch if you want alerts
 
 scrape_configs:
   - job_name: 'prometheus'
@@ -13,21 +9,7 @@ scrape_configs:
   - job_name: 'fullstack-api'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['api:3000']
-    labels:
-      service: fullstack-api-server
-      environment: ${NODE_ENV:-development}
-
-  - job_name: 'postgres'
-    static_configs:
-      - targets: ['postgres-exporter:9187']   # optional – add postgres-exporter later if you want DB metrics
-
-  # Self-health of the stack
-  - job_name: 'node'
-    static_configs:
-      - targets: ['host.docker.internal:9100']   # optional host metrics (add node-exporter if desired)
-
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets: ['alertmanager:9093']   # placeholder – can be added later
+      - targets: ['fullstack-api:3000']   # ← changed from "api"
+        labels:
+          service: fullstack-api-server
+          environment: development
