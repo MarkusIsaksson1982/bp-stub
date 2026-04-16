@@ -1,22 +1,12 @@
-# Full Stack Observatory
+# Foundation
 
-**A complete 12-layer production reference architecture built as a Turborepo workspace repo with shared packages.**
+Production-ready foundation for voice and speech technology prototypes.
 
-One command gives you a fully monitored, secured, containerized full-stack system with real Prometheus, Grafana, and alerting.
-
-**Live interactive explorer** -> [markusisaksson1982.github.io](https://markusisaksson1982.github.io/)
-
-## Review Paths
-
-- Recruiters: [RECRUITER_SUMMARY.md](RECRUITER_SUMMARY.md)
-- Engineers: [START_HERE.md](START_HERE.md)
-- Hands-on reviewers: [COMPOSE.md](COMPOSE.md)
-
-## One-Command Demo
+## Quick Start
 
 ```bash
-git clone https://github.com/MarkusIsaksson1982/fullstack-observatory.git
-cd fullstack-observatory
+git clone https://github.com/example/foundation.git
+cd foundation
 cp .env.example .env
 npm install
 npm run compose
@@ -24,49 +14,89 @@ npm run compose
 
 After ~30 seconds open:
 
-- **http://localhost** -> API (redirects to health)
+- **http://localhost** -> API
 - **http://localhost:3001** -> Grafana (`admin` / `admin123`)
-- **http://localhost:9090** -> Prometheus + alerts
+- **http://localhost:9090** -> Prometheus
 
 ## What You Get
 
-- Turborepo workspace repo with shared packages (`@observatory/*`)
-- Layer 2: Express + Zod API with live metrics
-- Layer 3: PostgreSQL + exporter
-- Layer 4: Nginx + hardened configs
-- Layer 8: Security hardening (Helmet, CSP, rate limiting, Zod)
-- Layer 9: Multi-stage Dockerfiles
-- Layer 11: Prometheus + Grafana + Alertmanager
+- Turborepo workspace with shared packages (`@foundation/*`)
+- Express.js API with Prometheus metrics
+- PostgreSQL with inference logging
+- Prometheus + Grafana + Alertmanager
+- Multi-stage Docker builds
+- ML inference metrics support
 
-## The 12 Layers
+## Project Structure
 
-1. Layer 1: Frontend
-2. Layer 2: Backend / APIs
-3. Layer 3: Database
-4. Layer 4: Servers
-5. Layer 5: Networking
-6. Layer 6: Cloud Infrastructure
-7. Layer 7: CI/CD Pipelines
-8. Layer 8: Security
-9. Layer 9: Containers
-10. Layer 10: CDN / Edge
-11. Layer 11: Monitoring, Logging & Alerting
-12. Layer 12: Backups & Recovery
+```
+foundation/
+├── apps/
+│   ├── api/           # Express API server
+│   └── db/            # PostgreSQL schema
+├── packages/
+│   ├── core/          # Error classes, utilities
+│   ├── logger/        # Pino logger
+│   ├── metrics/       # Prometheus metrics
+│   └── healthcheck/   # Health endpoints
+├── docker-compose.foundation.yml
+└── prometheus/
+    └── prometheus.yml
+```
 
-## Screenshots
+## Use Cases
 
-![Terminal](screenshots/01-terminal-compose.png)
-![Grafana](screenshots/02-grafana-dashboard.png)
-![Prometheus](screenshots/03-prometheus-targets.png)
+This foundation is designed for building prototypes quickly:
 
-## Links
+- Meeting assistants and transcription services
+- Voice biometrics and speaker verification
+- Real-time captioning and speech-to-text
+- Text-to-speech and voice synthesis
+- RAG pipelines for voice-enabled products
 
-- [Interactive 12-Layer Explorer](https://markusisaksson1982.github.io/)
-- [Architecture](ARCHITECTURE.md)
-- [Start Here](START_HERE.md)
-- [Recruiter Summary](RECRUITER_SUMMARY.md)
-- [End-to-End Demo](COMPOSE.md)
+## Tech Stack
 
----
+| Layer | Technology |
+|-------|------------|
+| API | Express.js, Zod validation |
+| Database | PostgreSQL 16 |
+| Metrics | Prometheus, Grafana |
+| Container | Docker, multi-stage builds |
+| Monitoring | prom-client, alerting |
 
-Made as part of **The Full Stack Observatory**
+## Development
+
+```bash
+# Start all services
+npm run compose
+
+# Run API locally
+cd apps/api-server && npm run dev
+
+# Run migrations
+npm run db:migrate
+
+# Run tests
+npm test
+```
+
+## Adding ML Inference
+
+The foundation includes metrics for ML inference tracking:
+
+```javascript
+const { mlInferenceDurationSeconds, mlInferenceTotal } = require('@foundation/metrics');
+
+async function runInference(input) {
+  const start = Date.now();
+  try {
+    const result = await model.predict(input);
+    mlInferenceTotal.inc({ model: 'whisper', operation: 'transcribe', status: 'success' });
+    mlInferenceDurationSeconds.observe({ model: 'whisper', operation: 'transcribe' }, (Date.now() - start) / 1000);
+    return result;
+  } catch (error) {
+    mlInferenceTotal.inc({ model: 'whisper', operation: 'transcribe', status: 'error' });
+    throw error;
+  }
+}
+```

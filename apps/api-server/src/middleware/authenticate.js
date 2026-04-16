@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { ForbiddenError, UnauthorizedError } = require('../utils/errors');
 
 function createAuthenticate(options = {}) {
-  const demoToken = options.demoToken || process.env.AUTH_BEARER_TOKEN || 'demo-token-2026';
+  const apiKey = options.apiKey || process.env.API_KEY;
   const jwtSecret = options.jwtSecret || process.env.JWT_SECRET;
 
   return function authenticate(req, res, next) {
@@ -11,21 +11,18 @@ function createAuthenticate(options = {}) {
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return next(
-        new UnauthorizedError(
-          `Missing or invalid Authorization header. Use: Bearer ${demoToken}`
-        )
+        new UnauthorizedError('Missing or invalid Authorization header')
       );
     }
 
     const token = authHeader.slice(7).trim();
 
-    if (token === demoToken) {
+    if (apiKey && token === apiKey) {
       req.user = {
         id: 1,
-        name: 'Markus Isaksson',
+        name: 'Service Account',
         role: 'admin'
       };
-
       return next();
     }
 
@@ -34,13 +31,11 @@ function createAuthenticate(options = {}) {
         req.user = jwt.verify(token, jwtSecret);
         return next();
       } catch (error) {
-        // Preserve the layer page contract for invalid tokens.
+        // Token verification failed
       }
     }
 
-    return next(
-      new ForbiddenError(`Invalid token. The demo token is: ${demoToken}`)
-    );
+    return next(new ForbiddenError('Invalid token'));
   };
 }
 

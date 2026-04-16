@@ -6,9 +6,7 @@ route:
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
-  receiver: 'console'
+  receiver: 'default'
 
 receivers:
-  - name: 'console'
-    # For demo: prints alerts to console
-    # You can later add email, Slack, Teams, etc.
+  - name: 'default'

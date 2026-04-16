@@ -10,12 +10,12 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: 'fullstack-api'
+  - job_name: 'foundation-api'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['fullstack-api:3000']
+      - targets: ['foundation-api:3000']
         labels:
-          service: fullstack-api-server
+          service: foundation-api
           environment: development
 
   - job_name: 'postgres'

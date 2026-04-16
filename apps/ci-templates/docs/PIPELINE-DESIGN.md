@@ -1,8 +1,6 @@
-# Pipeline Design - Layer 7
+# Pipeline Design
 
-## Why These Stages, In This Order
-
-Every CI/CD pipeline in The Full Stack Observatory follows the same progression:
+## CI/CD Pipeline Stages
 
 ```text
 1. Lint     -> Catch code quality issues (fastest, cheapest)
@@ -12,34 +10,15 @@ Every CI/CD pipeline in The Full Stack Observatory follows the same progression:
 5. Deploy   -> Push to production (only on main, after all gates pass)
 ```
 
-### Fail Fast Principle
+## Fail Fast Principle
 
 Stages are ordered by **speed** and **cost**. Linting takes seconds and catches
-formatting issues that would waste time in later stages. Tests take longer but
-catch real bugs. Building and security scanning are heavier. Deployment only
-happens if everything passes.
+formatting issues. Tests catch real bugs. Building and security scanning are heavier.
+Deployment only happens if everything passes.
 
-### Reusable Workflows
+## Reusable Workflows
 
-GitHub Actions `workflow_call` lets repos reference shared workflows. This means:
-- One place to update CI logic (this repo)
-- All Observatory repos get the same quality gates
+GitHub Actions `workflow_call` lets repos reference shared workflows:
+- One place to update CI logic
+- All repos get the same quality gates
 - New repos inherit best practices by default
-
-### Cross-Repo Consistency
-
-| Repo | Workflows Used |
-|------|----------------|
-| fullstack-api-server | node-ci, security-scan |
-| fullstack-containerized | docker-build |
-| fullstack-infrastructure | terraform-plan |
-| fullstack-security-hardened | node-ci, security-scan |
-| fullstack-monitoring | node-ci |
-
-## Layer Cross-References
-
-- [Layer 7 page](https://markusisaksson1982.github.io/layers/ci-cd-pipelines/) - interactive pipeline simulator
-- [Layer 2](https://markusisaksson1982.github.io/layers/backend-apis/) - API server using node-ci
-- [Layer 6](https://markusisaksson1982.github.io/layers/cloud-infrastructure/) - Terraform using terraform-plan
-- [Layer 8](https://markusisaksson1982.github.io/layers/security/) - security-hardened using security-scan
-- [Layer 9](https://markusisaksson1982.github.io/layers/containers/) - containerized app using docker-build

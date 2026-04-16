@@ -1,7 +1,7 @@
 {
-  "name": "fullstack-database",
+  "name": "@foundation/db",
   "version": "1.0.0",
-  "description": "PostgreSQL schema for Layer 3 of The Full Stack Observatory",
+  "description": "PostgreSQL schema foundation for voice and speech technology",
   "main": "index.js",
   "scripts": {
     "migrate:up": "node-pg-migrate up",
@@ -16,9 +16,10 @@
     "database",
     "schema",
     "migrations",
-    "fullstack-observatory"
+    "voice",
+    "speech",
+    "foundation"
   ],
-  "author": "Markus Isaksson",
   "license": "MIT",
   "devDependencies": {
     "node-pg-migrate": "^6.2.2",

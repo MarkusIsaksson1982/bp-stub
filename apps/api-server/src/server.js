@@ -34,6 +34,7 @@ function loadEnv(filePath = path.resolve(process.cwd(), '.env')) {
 async function startServer() {
   loadEnv();
 
+  const logger = require('@foundation/logger');
   const { createApp } = require('./app');
   const { closePool, initializeDatabase } = require('./db/pool');
 
@@ -41,11 +42,14 @@ async function startServer() {
 
   const app = createApp();
   const port = Number(process.env.PORT || 3000);
+  const serviceName = process.env.SERVICE_NAME || 'foundation-api';
+
   const server = app.listen(port, () => {
-    console.log(`fullstack-api-server listening on port ${port}`);
+    logger.info({ port, service: serviceName }, 'Foundation API started');
   });
 
   const shutdown = async () => {
+    logger.info('Shutting down...');
     server.close(async () => {
       await closePool();
       process.exit(0);

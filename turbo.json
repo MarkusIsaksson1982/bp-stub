@@ -1,10 +1,10 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["NODE_ENV", "DATABASE_URL", "AUTH_BEARER_TOKEN", "JWT_SECRET"],
+  "globalEnv": ["NODE_ENV", "DATABASE_URL", "AUTH_BEARER_TOKEN", "JWT_SECRET", "LOG_LEVEL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
+      "outputs": ["dist/**"]
     },
     "dev": {
       "cache": false,
@@ -14,6 +14,12 @@
     "test": {
       "dependsOn": ["build"],
       "outputs": []
+    },
+    "migrate:up": {
+      "cache": false
+    },
+    "migrate:down": {
+      "cache": false
     }
   }
 }

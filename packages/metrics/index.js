@@ -1,16 +1,13 @@
 const prom = require('prom-client');
 
-// Create a Registry
 const register = new prom.Registry();
 register.setDefaultLabels({
-  service: 'fullstack-api-server',
+  service: process.env.SERVICE_NAME || 'foundation-api',
   environment: process.env.NODE_ENV || 'development'
 });
 
-// Standard collectors (CPU, memory, event loop, etc.)
 prom.collectDefaultMetrics({ register });
 
-// HTTP request metrics
 const httpRequestsTotal = new prom.Counter({
   name: 'http_requests_total',
   help: 'Total number of HTTP requests',
@@ -26,7 +23,28 @@ const httpRequestDurationSeconds = new prom.Histogram({
   registers: [register]
 });
 
-// Middleware for Express
+const mlInferenceDurationSeconds = new prom.Histogram({
+  name: 'ml_inference_duration_seconds',
+  help: 'ML model inference duration in seconds',
+  labelNames: ['model', 'operation'],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10, 30],
+  registers: [register]
+});
+
+const mlInferenceTotal = new prom.Counter({
+  name: 'ml_inference_total',
+  help: 'Total number of ML inferences',
+  labelNames: ['model', 'operation', 'status'],
+  registers: [register]
+});
+
+const queueSize = new prom.Gauge({
+  name: 'queue_size',
+  help: 'Current queue size',
+  labelNames: ['queue_name'],
+  registers: [register]
+});
+
 function metricsMiddleware(req, res, next) {
   const start = Date.now();
 
@@ -49,7 +67,6 @@ function metricsMiddleware(req, res, next) {
   next();
 }
 
-// Expose /metrics endpoint
 async function metricsEndpoint(req, res, next) {
   res.set('Content-Type', register.contentType);
 
@@ -63,6 +80,9 @@ async function metricsEndpoint(req, res, next) {
 module.exports = {
   metricsMiddleware,
   metricsEndpoint,
+  mlInferenceDurationSeconds,
+  mlInferenceTotal,
+  queueSize,
   register,
   prom
 };

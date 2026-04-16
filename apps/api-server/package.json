@@ -1,7 +1,7 @@
 {
-  "name": "fullstack-api-server",
+  "name": "@foundation/api",
   "version": "1.0.0",
-  "description": "Production Express.js REST API for Layer 2 of The Full Stack Observatory.",
+  "description": "Production Express.js REST API foundation with ML inference support",
   "main": "src/server.js",
   "type": "commonjs",
   "engines": {
@@ -14,15 +14,16 @@
     "lint": "eslint src tests"
   },
   "dependencies": {
-    "@observatory/logger": "file:../../packages/logger",
-    "@observatory/healthcheck": "file:../../packages/healthcheck",
-    "@observatory/core": "file:../../packages/core",
-    "@observatory/metrics": "file:../../packages/metrics",
+    "@foundation/logger": "file:../../packages/logger",
+    "@foundation/healthcheck": "file:../../packages/healthcheck",
+    "@foundation/core": "file:../../packages/core",
+    "@foundation/metrics": "file:../../packages/metrics",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
     "pino": "^9.5.0",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "helmet": "^8.0.0"
   },
   "devDependencies": {
     "eslint": "^8.57.1",

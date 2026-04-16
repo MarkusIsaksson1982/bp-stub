@@ -8,7 +8,7 @@ function createPoolConfig() {
   return {
     connectionString:
       process.env.DATABASE_URL ||
-      'postgresql://postgres:postgres@localhost:5432/fullstack_api_server',
+      'postgresql://postgres:postgres@localhost:5432/foundation_db',
     max: Number(process.env.PG_POOL_MAX || 10),
     idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30000),
     ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
@@ -41,26 +41,44 @@ async function initializeDatabase() {
 
   try {
     await client.query(`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE IF NOT EXISTS resources (
         id SERIAL PRIMARY KEY,
+        type TEXT NOT NULL,
         name TEXT NOT NULL,
-        email TEXT UNIQUE,
-        role TEXT DEFAULT 'member',
+        config JSONB DEFAULT '{}',
+        metadata JSONB DEFAULT '{}',
+        status TEXT DEFAULT 'active',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS inference_logs (
+        id SERIAL PRIMARY KEY,
+        resource_id INTEGER REFERENCES resources(id),
+        model TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        duration_ms INTEGER,
+        input_size INTEGER,
+        output_size INTEGER,
+        status TEXT NOT NULL,
+        error TEXT,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
     const result = await client.query(
-      'SELECT COUNT(*)::integer AS count FROM users;'
+      'SELECT COUNT(*)::integer AS count FROM resources;'
     );
 
     if (result.rows[0].count === 0) {
       await client.query(`
-        INSERT INTO users (name, role, email, created_at)
+        INSERT INTO resources (type, name, config, status)
         VALUES
-          ('Ada Lovelace', 'engineer', NULL, '1843-01-01'),
-          ('Alan Turing', 'architect', NULL, '1936-06-15'),
-          ('Grace Hopper', 'lead', NULL, '1952-03-01');
+          ('speech_to_text', 'Default STT Model', '{"model": "whisper-base"}', 'active'),
+          ('text_to_speech', 'Default TTS Model', '{"model": "tts-1"}', 'active'),
+          ('voice_biometrics', 'Default Voice Auth', '{"model": "resemblyzer"}', 'active');
       `);
     }
   } catch (error) {

@@ -2,176 +2,137 @@ const request = require('supertest');
 
 const { createApp } = require('../src/app');
 
-function createSilentLogger() {
-  return {
-    child() {
-      return this;
-    },
-    info() {},
-    error() {}
-  };
-}
-
-function createMemoryUserStore() {
-  const users = [
-    { id: 1, name: 'Ada Lovelace', role: 'engineer', created: '1843-01-01' },
-    { id: 2, name: 'Alan Turing', role: 'architect', created: '1936-06-15' },
-    { id: 3, name: 'Grace Hopper', role: 'lead', created: '1952-03-01' }
+function createMemoryResourceStore() {
+  const resources = [
+    { id: 1, type: 'speech_to_text', name: 'Whisper Base', config: {}, metadata: {}, status: 'active', created_at: new Date(), updated_at: new Date() },
+    { id: 2, type: 'text_to_speech', name: 'TTS Standard', config: {}, metadata: {}, status: 'active', created_at: new Date(), updated_at: new Date() }
   ];
-  let nextId = 4;
+  let nextId = 3;
 
-  function clone(user) {
-    return user ? { ...user } : null;
+  function clone(resource) {
+    return resource ? { ...resource } : null;
   }
 
   return {
     async list() {
-      return users.map(clone);
+      return resources.map(clone);
     },
-
     async getById(id) {
-      return clone(users.find((user) => user.id === id));
+      return clone(resources.find((r) => r.id === id));
     },
-
+    async getByType(type) {
+      return resources.filter((r) => r.type === type).map(clone);
+    },
     async create(input) {
-      const user = {
+      const resource = {
         id: nextId++,
+        type: input.type,
         name: input.name,
-        role: input.role || 'member',
-        created: '2026-03-28'
+        config: input.config || {},
+        metadata: input.metadata || {},
+        status: input.status || 'active',
+        created_at: new Date(),
+        updated_at: new Date()
       };
-
-      users.push(user);
-      return clone(user);
+      resources.push(resource);
+      return clone(resource);
     },
-
     async update(id, changes) {
-      const user = users.find((candidate) => candidate.id === id);
-
-      if (!user) {
-        return null;
-      }
-
-      Object.assign(user, changes);
-      return clone(user);
+      const resource = resources.find((r) => r.id === id);
+      if (!resource) return null;
+      Object.assign(resource, changes, { updated_at: new Date() });
+      return clone(resource);
     },
-
     async remove(id) {
-      const index = users.findIndex((candidate) => candidate.id === id);
-
-      if (index === -1) {
-        return null;
-      }
-
-      const [removed] = users.splice(index, 1);
+      const index = resources.findIndex((r) => r.id === id);
+      if (index === -1) return null;
+      const [removed] = resources.splice(index, 1);
       return clone(removed);
     }
   };
 }
 
 function createTestApp() {
-  process.env.AUTH_BEARER_TOKEN = 'demo-token-2026';
+  process.env.API_KEY = 'test-api-key';
 
   return createApp({
-    logger: createSilentLogger(),
     getDatabaseStatus: async () => 'up',
-    userStore: createMemoryUserStore(),
+    resourceStore: createMemoryResourceStore(),
     rateLimitMax: 100
   });
 }
 
-describe('/api/users', () => {
-  test('rejects missing auth with the layer page message', async () => {
+describe('/api/v1/resources', () => {
+  test('rejects missing auth', async () => {
     const app = createTestApp();
-    const response = await request(app).get('/api/users');
+    const response = await request(app).get('/api/v1/resources');
 
     expect(response.statusCode).toBe(401);
     expect(response.body).toMatchObject({
-      error: 'Unauthorized',
-      message:
-        'Missing or invalid Authorization header. Use: Bearer demo-token-2026'
+      error: 'Unauthorized'
     });
   });
 
-  test('supports full CRUD with the demo bearer token', async () => {
+  test('supports full CRUD with valid API key', async () => {
     const app = createTestApp();
-    const authHeader = { Authorization: 'Bearer demo-token-2026' };
+    const authHeader = { Authorization: 'Bearer test-api-key' };
 
-    const listResponse = await request(app).get('/api/users').set(authHeader);
+    const listResponse = await request(app).get('/api/v1/resources').set(authHeader);
     expect(listResponse.statusCode).toBe(200);
-    expect(listResponse.body.count).toBe(3);
+    expect(listResponse.body.count).toBe(2);
 
-    const getResponse = await request(app).get('/api/users/1').set(authHeader);
+    const getResponse = await request(app).get('/api/v1/resources/1').set(authHeader);
     expect(getResponse.statusCode).toBe(200);
     expect(getResponse.body.data).toMatchObject({
       id: 1,
-      name: 'Ada Lovelace'
+      name: 'Whisper Base'
     });
 
     const createResponse = await request(app)
-      .post('/api/users')
+      .post('/api/v1/resources')
       .set({
         ...authHeader,
         'Content-Type': 'application/json'
       })
-      .send({ name: 'Linus Torvalds', role: 'maintainer' });
+      .send({ type: 'llm', name: 'GPT-4o Mini' });
 
     expect(createResponse.statusCode).toBe(201);
     expect(createResponse.body).toMatchObject({
-      message: 'User created successfully'
-    });
-    expect(createResponse.body.data).toMatchObject({
-      id: 4,
-      name: 'Linus Torvalds',
-      role: 'maintainer'
+      message: 'Resource created'
     });
 
     const updateResponse = await request(app)
-      .put('/api/users/2')
+      .put('/api/v1/resources/1')
       .set({
         ...authHeader,
         'Content-Type': 'application/json'
       })
-      .send({ role: 'legend' });
+      .send({ status: 'inactive' });
 
     expect(updateResponse.statusCode).toBe(200);
-    expect(updateResponse.body).toMatchObject({
-      message: 'User updated'
-    });
-    expect(updateResponse.body.data).toMatchObject({
-      id: 2,
-      role: 'legend'
-    });
+    expect(updateResponse.body.data.status).toBe('inactive');
 
     const deleteResponse = await request(app)
-      .delete('/api/users/3')
+      .delete('/api/v1/resources/2')
       .set(authHeader);
 
     expect(deleteResponse.statusCode).toBe(200);
-    expect(deleteResponse.body).toMatchObject({
-      message: 'User deleted'
-    });
-    expect(deleteResponse.body.data).toMatchObject({
-      id: 3,
-      name: 'Grace Hopper'
-    });
   });
 
-  test('validates required request body fields', async () => {
+  test('validates required fields', async () => {
     const app = createTestApp();
 
     const response = await request(app)
-      .post('/api/users')
+      .post('/api/v1/resources')
       .set({
-        Authorization: 'Bearer demo-token-2026',
+        Authorization: 'Bearer test-api-key',
         'Content-Type': 'application/json'
       })
-      .send({ role: 'maintainer' });
+      .send({ type: 'llm' });
 
     expect(response.statusCode).toBe(400);
     expect(response.body).toMatchObject({
-      error: 'ValidationError',
-      message: 'Missing required field: "name"'
+      error: 'ValidationError'
     });
   });
 });

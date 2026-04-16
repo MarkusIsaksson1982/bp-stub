@@ -1,4 +1,5 @@
 const express = require('express');
+const helmet = require('helmet');
 
 const createAuthenticate = require('./middleware/authenticate');
 const createCors = require('./middleware/cors');
@@ -6,12 +7,10 @@ const createRateLimit = require('./middleware/rateLimit');
 const createRequestLogger = require('./middleware/requestLogger');
 const createValidate = require('./middleware/validate');
 const createHealthRouter = require('./routes/health');
-const { createUsersRouter } = require('./routes/users');
-const { NotFoundError, normalizeError } = require('@observatory/core');
+const { NotFoundError, normalizeError } = require('@foundation/core');
 
-// Shared observatory packages
-const logger = require('@observatory/logger');
-const { metricsMiddleware, metricsEndpoint } = require('@observatory/metrics');
+const logger = require('@foundation/logger');
+const { metricsMiddleware, metricsEndpoint } = require('@foundation/metrics');
 
 function createApp(options = {}) {
   const app = express();
@@ -20,11 +19,11 @@ function createApp(options = {}) {
   const validate = options.validate || createValidate;
 
   app.disable('x-powered-by');
+  app.use(helmet());
 
-  // Shared middleware
   app.use(createCors({ origin: options.corsOrigin }));
   app.use(createRequestLogger({ logger }));
-  app.use(metricsMiddleware);                    // ← shared metrics
+  app.use(metricsMiddleware);
   app.use(
     createRateLimit({
       max: options.rateLimitMax,
@@ -34,27 +33,20 @@ function createApp(options = {}) {
     })
   );
 
-  // Health checks (shared + custom)
   app.use('/api/health', createHealthRouter({
     getDatabaseStatus: options.getDatabaseStatus
   }));
 
-  // Users router
-  app.use('/api/users', createUsersRouter({
-    userStore: options.userStore,
-    authenticate,
-    validate
-  }));
+  if (options.router) {
+    app.use('/api/v1', options.router);
+  }
 
-  // Prometheus metrics endpoint
   app.get('/metrics', metricsEndpoint);
 
-  // 404 handler
   app.use((req, res, next) => {
     next(new NotFoundError(`Route ${req.method} ${req.originalUrl} not found`));
   });
 
-  // Error handler
   app.use((error, req, res, next) => {
     const normalizedError = normalizeError(error);
     const statusCode = normalizedError.statusCode || 500;

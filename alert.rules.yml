@@ -1,7 +1,7 @@
 groups:
-  - name: FullStackObservatoryAlerts
+  - name: foundation
     rules:
-      - alert: HighErrorRate
+      - alert: APIHighErrorRate
         expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
         for: 2m
         labels:
@@ -10,7 +10,7 @@ groups:
           summary: "High API error rate ({{ $value | humanizePercentage }})"
           description: "Error rate is above 5% for more than 2 minutes"
 
-      - alert: HighLatency
+      - alert: APISlowResponse
         expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0.5
         for: 2m
         labels:
@@ -34,3 +34,21 @@ groups:
           severity: warning
         annotations:
           summary: "High PostgreSQL connections"
+
+      - alert: MLInferenceHighLatency
+        expr: histogram_quantile(0.95, sum(rate(ml_inference_duration_seconds_bucket[5m])) by (le, model)) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ML inference latency is high for {{ $labels.model }}"
+          description: "p95 latency is {{ $value }}s"
+
+      - alert: MLInferenceHighErrorRate
+        expr: rate(ml_inference_total{status="error"}[5m]) / rate(ml_inference_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High ML inference error rate"
+          description: "Error rate is {{ $value | humanizePercentage }}"

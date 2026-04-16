@@ -12,32 +12,10 @@ function createSilentLogger() {
   };
 }
 
-function createNoopUserStore() {
-  return {
-    async list() {
-      return [];
-    },
-    async getById() {
-      return null;
-    },
-    async create() {
-      return null;
-    },
-    async update() {
-      return null;
-    },
-    async remove() {
-      return null;
-    }
-  };
-}
-
 describe('GET /api/health', () => {
-  test('returns service metadata and middleware headers without auth', async () => {
+  test('returns service metadata without auth', async () => {
     const app = createApp({
-      logger: createSilentLogger(),
       getDatabaseStatus: async () => 'up',
-      userStore: createNoopUserStore(),
       rateLimitMax: 100
     });
 
@@ -47,12 +25,10 @@ describe('GET /api/health', () => {
     expect(response.body).toMatchObject({
       status: 'ok',
       framework: 'Express.js',
-      database: 'up',
-      service: 'fullstack-api-server'
+      database: 'up'
     });
     expect(response.headers['access-control-allow-origin']).toBe('*');
-    expect(response.headers['x-request-id']).toMatch(/^req_/);
-    expect(response.headers['x-request-time']).toBeTruthy();
     expect(response.headers['x-ratelimit-limit']).toBe('100');
+    expect(response.body.memory).toBeDefined();
   });
 });

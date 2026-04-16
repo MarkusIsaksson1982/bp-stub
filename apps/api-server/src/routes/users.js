@@ -3,115 +3,91 @@ const express = require('express');
 const { query } = require('../db/pool');
 const { NotFoundError } = require('../utils/errors');
 
-function mapUserRow(row) {
+function mapResourceRow(row) {
   return {
     id: Number(row.id),
+    type: row.type,
     name: row.name,
-    role: row.role,
-    created: row.created
+    config: row.config,
+    metadata: row.metadata,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }
 
-function createPostgresUserStore(options = {}) {
+function createPostgresResourceStore(options = {}) {
   const queryFn = options.queryFn || query;
 
   const store = {
-    async list() {
-      const result = await queryFn(`
+    async list(type = null) {
+      let sql = `
         SELECT
-          id,
-          name,
-          role,
-          TO_CHAR(created_at, 'YYYY-MM-DD') AS created
-        FROM users
-        ORDER BY id ASC;
-      `);
+          id, type, name, config, metadata, status, created_at, updated_at
+        FROM resources
+      `;
+      const params = [];
 
-      return result.rows.map(mapUserRow);
+      if (type) {
+        sql += ' WHERE type = $1';
+        params.push(type);
+      }
+
+      sql += ' ORDER BY id ASC;';
+      const result = await queryFn(sql, params);
+      return result.rows.map(mapResourceRow);
     },
 
     async getById(id) {
       const result = await queryFn(
-        `
-          SELECT
-            id,
-            name,
-            role,
-            TO_CHAR(created_at, 'YYYY-MM-DD') AS created
-          FROM users
-          WHERE id = $1;
-        `,
+        `SELECT id, type, name, config, metadata, status, created_at, updated_at
+         FROM resources WHERE id = $1;`,
         [id]
       );
+      return result.rows[0] ? mapResourceRow(result.rows[0]) : null;
+    },
 
-      return result.rows[0] ? mapUserRow(result.rows[0]) : null;
+    async getByType(type) {
+      const result = await queryFn(
+        `SELECT id, type, name, config, metadata, status, created_at, updated_at
+         FROM resources WHERE type = $1 AND status = 'active';`,
+        [type]
+      );
+      return result.rows.map(mapResourceRow);
     },
 
     async create(input) {
       const result = await queryFn(
-        `
-          INSERT INTO users (name, role)
-          VALUES ($1, $2)
-          RETURNING
-            id,
-            name,
-            role,
-            TO_CHAR(created_at, 'YYYY-MM-DD') AS created;
-        `,
-        [input.name, input.role || 'member']
+        `INSERT INTO resources (type, name, config, metadata, status)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, type, name, config, metadata, status, created_at, updated_at;`,
+        [input.type, input.name, input.config || {}, input.metadata || {}, input.status || 'active']
       );
-
-      return mapUserRow(result.rows[0]);
+      return mapResourceRow(result.rows[0]);
     },
 
     async update(id, changes) {
       const existing = await store.getById(id);
-
-      if (!existing) {
-        return null;
-      }
-
-      const nextName =
-        Object.prototype.hasOwnProperty.call(changes, 'name')
-          ? changes.name
-          : existing.name;
-      const nextRole =
-        Object.prototype.hasOwnProperty.call(changes, 'role')
-          ? changes.role
-          : existing.role;
+      if (!existing) return null;
 
       const result = await queryFn(
-        `
-          UPDATE users
-          SET name = $2, role = $3
-          WHERE id = $1
-          RETURNING
-            id,
-            name,
-            role,
-            TO_CHAR(created_at, 'YYYY-MM-DD') AS created;
-        `,
-        [id, nextName, nextRole]
+        `UPDATE resources
+         SET name = $2, config = $3, metadata = $4, status = $5, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING id, type, name, config, metadata, status, created_at, updated_at;`,
+        [id, changes.name ?? existing.name, changes.config ?? existing.config,
+         changes.metadata ?? existing.metadata, changes.status ?? existing.status]
       );
-
-      return mapUserRow(result.rows[0]);
+      return mapResourceRow(result.rows[0]);
     },
 
     async remove(id) {
       const result = await queryFn(
-        `
-          DELETE FROM users
-          WHERE id = $1
-          RETURNING
-            id,
-            name,
-            role,
-            TO_CHAR(created_at, 'YYYY-MM-DD') AS created;
-        `,
+        `DELETE FROM resources WHERE id = $1
+         RETURNING id, type, name, config, metadata, status, created_at, updated_at;`,
         [id]
       );
-
-      return result.rows[0] ? mapUserRow(result.rows[0]) : null;
+      return result.rows[0] ? mapResourceRow(result.rows[0]) : null;
     }
   };
 
@@ -124,10 +100,10 @@ function asyncHandler(handler) {
   };
 }
 
-function createUsersRouter(options = {}) {
+function createResourcesRouter(options = {}) {
   const authenticate = options.authenticate;
   const validate = options.validate;
-  const userStore = options.userStore || createPostgresUserStore();
+  const resourceStore = options.resourceStore || createPostgresResourceStore();
 
   if (typeof authenticate !== 'function') {
     throw new Error('authenticate middleware must be provided');
@@ -143,15 +119,13 @@ function createUsersRouter(options = {}) {
     '/',
     authenticate,
     asyncHandler(async (req, res) => {
-      const users = await userStore.list();
+      const type = req.query.type || null;
+      const resources = await resourceStore.list(type);
 
       res.json({
-        data: users,
-        count: users.length,
-        meta: {
-          page: 1,
-          perPage: 20
-        }
+        data: resources,
+        count: resources.length,
+        meta: { page: 1, perPage: 100 }
       });
     })
   );
@@ -160,13 +134,20 @@ function createUsersRouter(options = {}) {
     '/:id',
     authenticate,
     asyncHandler(async (req, res) => {
-      const user = await userStore.getById(Number(req.params.id));
-
-      if (!user) {
-        throw new NotFoundError(`User #${req.params.id} not found`);
+      const resource = await resourceStore.getById(Number(req.params.id));
+      if (!resource) {
+        throw new NotFoundError(`Resource #${req.params.id} not found`);
       }
+      res.json({ data: resource });
+    })
+  );
 
-      res.json({ data: user });
+  router.get(
+    '/type/:type',
+    authenticate,
+    asyncHandler(async (req, res) => {
+      const resources = await resourceStore.getByType(req.params.type);
+      res.json({ data: resources, count: resources.length });
     })
   );
 
@@ -174,16 +155,14 @@ function createUsersRouter(options = {}) {
     '/',
     authenticate,
     validate({
+      type: { required: true, type: 'string' },
       name: { required: true, type: 'string' },
-      role: { required: false, type: 'string' }
+      config: { required: false, type: 'object' },
+      metadata: { required: false, type: 'object' }
     }),
     asyncHandler(async (req, res) => {
-      const user = await userStore.create(req.body);
-
-      res.status(201).json({
-        data: user,
-        message: 'User created successfully'
-      });
+      const resource = await resourceStore.create(req.body);
+      res.status(201).json({ data: resource, message: 'Resource created' });
     })
   );
 
@@ -192,19 +171,16 @@ function createUsersRouter(options = {}) {
     authenticate,
     validate({
       name: { required: false, type: 'string' },
-      role: { required: false, type: 'string' }
+      config: { required: false, type: 'object' },
+      metadata: { required: false, type: 'object' },
+      status: { required: false, type: 'string' }
     }),
     asyncHandler(async (req, res) => {
-      const user = await userStore.update(Number(req.params.id), req.body);
-
-      if (!user) {
-        throw new NotFoundError(`User #${req.params.id} not found`);
+      const resource = await resourceStore.update(Number(req.params.id), req.body);
+      if (!resource) {
+        throw new NotFoundError(`Resource #${req.params.id} not found`);
       }
-
-      res.json({
-        data: user,
-        message: 'User updated'
-      });
+      res.json({ data: resource, message: 'Resource updated' });
     })
   );
 
@@ -212,16 +188,11 @@ function createUsersRouter(options = {}) {
     '/:id',
     authenticate,
     asyncHandler(async (req, res) => {
-      const user = await userStore.remove(Number(req.params.id));
-
-      if (!user) {
-        throw new NotFoundError(`User #${req.params.id} not found`);
+      const resource = await resourceStore.remove(Number(req.params.id));
+      if (!resource) {
+        throw new NotFoundError(`Resource #${req.params.id} not found`);
       }
-
-      res.json({
-        data: user,
-        message: 'User deleted'
-      });
+      res.json({ data: resource, message: 'Resource deleted' });
     })
   );
 
@@ -229,6 +200,6 @@ function createUsersRouter(options = {}) {
 }
 
 module.exports = {
-  createUsersRouter,
-  createPostgresUserStore
+  createResourcesRouter,
+  createPostgresResourceStore
 };

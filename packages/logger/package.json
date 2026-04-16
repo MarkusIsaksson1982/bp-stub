@@ -1,7 +1,7 @@
 {
-  "name": "@observatory/logger",
-  "version": "0.1.0",
-  "description": "Shared structured logger for the Full Stack Observatory",
+  "name": "@foundation/logger",
+  "version": "1.0.0",
+  "description": "Shared structured logger for the foundation",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {

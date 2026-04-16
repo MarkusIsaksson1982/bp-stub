@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: fullstack-postgres
+    container_name: foundation-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -18,21 +18,22 @@ services:
       retries: 8
       start_period: 20s
     networks:
-      - fullstack-network
+      - foundation-network
 
   api:
     build:
       context: .
       dockerfile: ./apps/api-server/Dockerfile
-    container_name: fullstack-api
+    container_name: foundation-api
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV}
       PORT: 3000
+      SERVICE_NAME: foundation-api
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      AUTH_BEARER_TOKEN: ${AUTH_BEARER_TOKEN}
+      API_KEY: ${API_KEY}
       JWT_SECRET: ${JWT_SECRET}
-      LOG_LEVEL: info
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "3000:3000"
     depends_on:
@@ -45,11 +46,11 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - fullstack-network
+      - foundation-network
 
   nginx:
     image: nginx:alpine
-    container_name: fullstack-nginx
+    container_name: foundation-nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -59,24 +60,24 @@ services:
       api:
         condition: service_healthy
     networks:
-      - fullstack-network
+      - foundation-network
 
   prometheus:
     image: prom/prometheus:latest
-    container_name: fullstack-prometheus
+    container_name: foundation-prometheus
     restart: unless-stopped
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./alert.rules.yml:/etc/prometheus/alert.rules.yml:ro   # ← NEW LINE
+      - ./alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
     networks:
-      - fullstack-network
+      - foundation-network
 
   grafana:
     image: grafana/grafana:11.0.0
-    container_name: fullstack-grafana
+    container_name: foundation-grafana
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
@@ -90,22 +91,22 @@ services:
     depends_on:
       - prometheus
     networks:
-      - fullstack-network
+      - foundation-network
 
   alertmanager:
     image: prom/alertmanager:latest
-    container_name: fullstack-alertmanager
+    container_name: foundation-alertmanager
     restart: unless-stopped
     volumes:
       - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
     ports:
       - "9093:9093"
     networks:
-      - fullstack-network
+      - foundation-network
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
-    container_name: fullstack-postgres-exporter
+    container_name: foundation-postgres-exporter
     restart: unless-stopped
     environment:
       DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
@@ -115,7 +116,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - fullstack-network
+      - foundation-network
 
 volumes:
   postgres_data:
@@ -123,6 +124,6 @@ volumes:
   grafana_data:
 
 networks:
-  fullstack-network:
+  foundation-network:
     driver: bridge
-    name: fullstack-network
+    name: foundation-network

@@ -1,7 +1,7 @@
 {
-  "name": "fullstack-containerized",
+  "name": "@foundation/containerized",
   "version": "1.0.0",
-  "description": "Layer 9 Observatory Demo",
+  "description": "Containerized foundation service",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js"

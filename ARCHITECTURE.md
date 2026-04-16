@@ -1,70 +1,58 @@
 # Architecture Overview
 
-**The Full Stack Observatory – 12 Layer Reference Architecture**
-
 ```mermaid
 flowchart TD
-    subgraph "Client / Browser"
-        UI[Layer 1: Frontend UI + Interactive Demos]
+    subgraph "API Layer"
+        API[foundation-api]
     end
 
-    UI --> API[Layer 2: Backend APIs<br/>fullstack-api-server]
-    API --> DB[Layer 3: Database<br/>fullstack-database]
-    API --> SRV[Layer 4: Servers<br/>fullstack-server-configs]
-    API --> SEC[Layer 8: Security Hardening<br/>fullstack-security-hardened]
-
-    subgraph "Runtime & Deployment"
-        CNT[Layer 9: Containers<br/>fullstack-containerized]
-        INF[Layer 6: Cloud Infrastructure<br/>fullstack-infrastructure]
-        CI[Layer 7: CI/CD<br/>fullstack-ci-templates]
+    subgraph "Data Layer"
+        DB[(PostgreSQL)]
     end
-
-    API --> CNT
-    CNT --> INF
-    CNT --> CI
 
     subgraph "Observability"
-        MON[Layer 11: Monitoring, Logging & Alerting<br/>fullstack-monitoring]
+        PROM[Prometheus]
+        GRAF[Grafana]
+        ALERT[Alertmanager]
     end
 
-    API --> MON
-    DB --> MON
-    CNT --> MON
-    INF --> MON
+    API --> DB
+    API --> PROM
+    DB --> PROM
+    PROM --> GRAF
+    PROM --> ALERT
 
-    style UI fill:#e3f2fd
-    style MON fill:#f3e5f5
+    style API fill:#e3f2fd
+    style DB fill:#fff3e0
+    style PROM fill:#f3e5f5
 ```
 
-## Request / Data Flow (simplified)
+## Components
 
-1. Browser → **Layer 2 API** (Express)
-2. API → **Layer 3 Database** (PostgreSQL)
-3. All services expose health/metrics to **Layer 11 Monitoring**
-4. Containers (**Layer 9**) run on **Layer 6 Infrastructure** (Terraform)
-5. Everything is secured by **Layer 8** and configured via **Layer 4**
-6. CI/CD (**Layer 7**) builds, tests, and deploys the whole stack
+| Component | Purpose |
+|-----------|---------|
+| `@foundation/api` | Express.js REST API with metrics |
+| `@foundation/db` | PostgreSQL schema for ML resources |
+| `@foundation/metrics` | Prometheus metrics (HTTP + ML) |
+| `@foundation/logger` | Structured Pino logging |
+| `@foundation/core` | Error classes and utilities |
 
-## All 12 Layers
+## Resource Types
 
-1. Layer 1: Frontend UI and interactive demos
-2. Layer 2: Backend APIs
-3. Layer 3: Database
-4. Layer 4: Servers and process management
-5. Layer 5: Networking
-6. Layer 6: Cloud infrastructure
-7. Layer 7: CI/CD pipelines
-8. Layer 8: Security hardening
-9. Layer 9: Containers
-10. Layer 10: CDN and edge delivery
-11. Layer 11: Monitoring, logging, and alerting
-12. Layer 12: Backups and recovery
+| Type | Description |
+|------|-------------|
+| `speech_to_text` | STT/ASR models |
+| `text_to_speech` | TTS synthesis |
+| `voice_biometrics` | Speaker verification |
+| `llm` | Language models |
+| `rag` | Retrieval-augmented generation |
 
-**See the live interactive version** → [markusisaksson1982.github.io](https://markusisaksson1982.github.io/)
+## Inference Flow
 
-## Cross-Layer Integration Points
-
-- `fullstack-monitoring` modules are imported directly into `fullstack-api-server`
-- `fullstack-containerized` Dockerfiles reference configs from `fullstack-server-configs`
-- Terraform modules in `fullstack-infrastructure` can deploy the containerized stack + monitoring
-- All repos share consistent logging, health checks, and environment variable patterns
+1. Request → API with API key
+2. API → Validate with Zod
+3. API → Log inference start
+4. API → Run ML model
+5. API → Log inference end (duration, status)
+6. Response → Client
+7. Prometheus scrapes metrics
