@@ -1,4 +1,44 @@
 services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: speech-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    command: serve
+    networks:
+      - foundation-network
+
+  speech-python:
+    build:
+      context: .
+      dockerfile: ./apps/speech-python/Dockerfile
+    container_name: speech-python
+    restart: unless-stopped
+    environment:
+      SERVICE_NAME: speech-python
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      OLLAMA_BASE_URL: http://ollama:11434
+      HF_HOME: /models
+      TRANSFORMERS_CACHE: /models
+    ports:
+      - "8000:8000"
+    depends_on:
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - foundation-network
+    volumes:
+      - models_cache:/models
+
   postgres:
     image: postgres:16-alpine
     container_name: foundation-postgres
@@ -122,6 +162,8 @@ volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
+  ollama_data:
+  models_cache:
 
 networks:
   foundation-network:
