@@ -111,7 +111,7 @@ services:
     environment:
       DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
     ports:
-      - "9187:9187"
+      - "9188:9187"
     depends_on:
       postgres:
         condition: service_healthy
