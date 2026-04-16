@@ -1,4 +1,4 @@
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 
 WORKDIR /app
 
@@ -9,9 +9,9 @@ COPY packages/healthcheck/package.json ./packages/healthcheck/
 COPY packages/core/package.json ./packages/core/
 COPY apps/api-server/package.json ./apps/api-server/
 
-RUN npm ci --omit=dev --ignore-scripts --prefer-offline
+RUN npm install --omit=dev --ignore-scripts
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 RUN apk add --no-cache curl ca-certificates
 
