@@ -1,1 +1,1 @@
-module.exports = require('@observatory/core');
+module.exports = require('@foundation/core');

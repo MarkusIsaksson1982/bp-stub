@@ -1,11 +1,11 @@
-# @observatory/metrics
+# @foundation/metrics
 
-Shared Prometheus metrics package for the Full Stack Observatory.
+Shared Prometheus metrics package for the foundation.
 
 ## Usage in any service
 
 ```js
-const { metricsMiddleware, metricsEndpoint } = require('@observatory/metrics');
+const { metricsMiddleware, metricsEndpoint } = require('@foundation/metrics');
 
 // In your Express app
 app.use(metricsMiddleware);

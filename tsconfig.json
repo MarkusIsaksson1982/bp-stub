@@ -3,7 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@observatory/*": ["packages/*/index.js"]
+      "@foundation/*": ["packages/*/index.js"]
     },
     "strict": true,
     "esModuleInterop": true,
